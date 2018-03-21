@@ -1,4 +1,6 @@
-﻿namespace IndentGuide {
+﻿using IndentGuide.Dialogs.Controls;
+
+namespace IndentGuide.Dialogs {
     partial class CustomBehaviorOptionsControl {
         /// <summary> 
         /// Required designer variable.
@@ -24,8 +26,8 @@
         /// </summary>
         private void InitializeComponent() {
             this.panelLineOverrides = new System.Windows.Forms.TableLayoutPanel();
-            this.lineTextPreview = new IndentGuide.LineTextPreview();
-            this.gridLineMode = new IndentGuide.CheckedPropertyGrid();
+            this.lineTextPreview = new LineTextPreview();
+            this.gridLineMode = new CheckedPropertyGrid();
             this.panelLineOverrides.SuspendLayout();
             this.SuspendLayout();
             // 

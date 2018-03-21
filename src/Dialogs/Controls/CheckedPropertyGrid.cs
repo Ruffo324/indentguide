@@ -23,27 +23,145 @@ using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 
-namespace IndentGuide {
-    public partial class CheckedPropertyGrid : UserControl {
+namespace IndentGuide.Dialogs.Controls
+{
+    public partial class CheckedPropertyGrid : UserControl
+    {
         private readonly List<PropertyBox> CheckBoxes;
 
-        class PropertyBox {
-            public CheckBox CheckBox { get; set; }
-            public string Name { get; private set; }
-            public int SortPriority { get; private set; }
-            public string DisplayName { get; private set; }
-            public string Description { get; private set; }
+        private Type _SelectableType;
 
+        private object _SelectedObject;
+
+        public CheckedPropertyGrid()
+        {
+            InitializeComponent();
+            panel.HorizontalScroll.Visible = false;
+
+            CheckBoxes = new List<PropertyBox>();
+        }
+
+        [Browsable(false)]
+        public object SelectedObject
+        {
+            get => _SelectedObject;
+            set
+            {
+                _SelectedObject = value;
+                if (InvokeRequired)
+                    BeginInvoke((Action) UpdateObject);
+                else
+                    UpdateObject();
+            }
+        }
+
+        [Browsable(false)]
+        public Type SelectableType
+        {
+            get => _SelectableType;
+            set
+            {
+                _SelectableType = value;
+                if (InvokeRequired)
+                    BeginInvoke((Action) UpdateType);
+                else
+                    UpdateType();
+            }
+        }
+
+        public event EventHandler PropertyValueChanged;
+
+        private void OnPropertyValueChanged()
+        {
+            EventHandler evt = PropertyValueChanged;
+            if (evt != null)
+                evt(this, EventArgs.Empty);
+        }
+
+        private void UpdateObject()
+        {
+            object obj = SelectedObject;
+            if (obj == null) return;
+            if (SelectableType != obj.GetType()) return;
+
+            foreach (PropertyBox check in CheckBoxes) check.GetValue(obj);
+        }
+
+        private void UpdateType()
+        {
+            SuspendLayout();
+            try
+            {
+                Type type = SelectableType;
+                if (type == null)
+                {
+                    table.Controls.Clear();
+                    CheckBoxes.Clear();
+                    toolTip.RemoveAll();
+                    table.RowCount = 1;
+                }
+                else
+                {
+                    CheckBoxes.Clear();
+                    foreach (PropertyInfo prop in type.GetProperties())
+                    {
+                        if (!prop.CanWrite || !prop.GetSetMethod().IsPublic) continue;
+
+                        PropertyBox check = new PropertyBox(prop);
+                        CheckBoxes.Add(check);
+                        check.CheckBox.CheckedChanged += check_CheckedChanged;
+                    }
+
+                    table.Controls.Clear();
+                    toolTip.RemoveAll();
+                    table.RowCount = CheckBoxes.Count;
+                    int row = 0;
+                    foreach (PropertyBox check in CheckBoxes.OrderBy(v => v.SortPriority))
+                    {
+                        table.RowStyles[row].SizeType = SizeType.AutoSize;
+                        table.Controls.Add(check.CheckBox, 0, row++);
+                        toolTip.SetToolTip(check.CheckBox, check.Description);
+                    }
+                }
+            }
+            finally
+            {
+                ResumeLayout(true);
+            }
+        }
+
+        private void check_CheckedChanged(object sender, EventArgs e)
+        {
+            CheckBox check = sender as CheckBox;
+            Debug.Assert(check != null);
+            if (check == null) return;
+
+            WeakReference weakref = check.Tag as WeakReference;
+            Debug.Assert(weakref != null);
+            if (weakref == null) return;
+
+            PropertyBox propInfo = weakref.Target as PropertyBox;
+            if (propInfo == null) return;
+
+            propInfo.SetValue(SelectedObject);
+
+            OnPropertyValueChanged();
+        }
+
+        private class PropertyBox
+        {
             private readonly PropertyInfo PropInfo;
 
-            public PropertyBox(PropertyInfo propInfo) {
+            public PropertyBox(PropertyInfo propInfo)
+            {
                 PropInfo = propInfo;
                 Name = "chk" + propInfo.Name;
                 SortPriority = GetSortOrder();
                 DisplayName = GetDisplayName();
                 Description = GetDescription();
 
-                CheckBox = new CheckBox {
+                CheckBox = new CheckBox
+                {
                     Name = Name,
                     Text = DisplayName,
                     TextAlign = ContentAlignment.MiddleLeft,
@@ -53,165 +171,91 @@ namespace IndentGuide {
                 CheckBox.Tag = new WeakReference(this);
             }
 
-            public void SetValue(object target) {
-                try {
+            public CheckBox CheckBox { get; }
+            public string Name { get; }
+            public int SortPriority { get; }
+            public string DisplayName { get; }
+            public string Description { get; }
+
+            public void SetValue(object target)
+            {
+                try
+                {
                     PropInfo.SetValue(target, CheckBox.Checked, null);
-                } catch {
+                }
+                catch
+                {
                     CheckBox.Enabled = false;
                 }
             }
 
-            public void GetValue(object source) {
-                try {
-                    CheckBox.Checked = (bool)PropInfo.GetValue(source, null);
+            public void GetValue(object source)
+            {
+                try
+                {
+                    CheckBox.Checked = (bool) PropInfo.GetValue(source, null);
                     CheckBox.Enabled = true;
-                } catch {
+                }
+                catch
+                {
                     CheckBox.Enabled = false;
                 }
             }
 
-            private int GetSortOrder() {
-                try {
-                    var sort = PropInfo.GetCustomAttributes(false).OfType<SortOrderAttribute>().First();
+            private int GetSortOrder()
+            {
+                try
+                {
+                    SortOrderAttribute sort = PropInfo.GetCustomAttributes(false).OfType<SortOrderAttribute>().First();
                     return sort.Priority;
-                } catch (Exception ex) {
-                    Trace.WriteLine("CheckedPropertyGrid.GetSortOrder Exception: " + ex.ToString());
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine("CheckedPropertyGrid.GetSortOrder Exception: " + ex);
                     return 0;
                 }
             }
 
-            private string GetDisplayName() {
-                try {
-                    var name = PropInfo.GetCustomAttributes(false).OfType<DisplayNameAttribute>().First();
+            private string GetDisplayName()
+            {
+                try
+                {
+                    DisplayNameAttribute name = PropInfo.GetCustomAttributes(false).OfType<DisplayNameAttribute>().First();
                     return name.DisplayName;
-                } catch (Exception ex) {
-                    Trace.WriteLine("CheckedPropertyGrid.GetDisplayName Exception: " + ex.ToString());
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine("CheckedPropertyGrid.GetDisplayName Exception: " + ex);
                     return PropInfo.Name;
                 }
             }
 
-            private string GetDescription() {
-                try {
-                    var descr = PropInfo.GetCustomAttributes(false).OfType<DescriptionAttribute>().First();
+            private string GetDescription()
+            {
+                try
+                {
+                    DescriptionAttribute descr = PropInfo.GetCustomAttributes(false).OfType<DescriptionAttribute>().First();
                     return descr.Description;
-                } catch (Exception ex) {
-                    Trace.WriteLine("CheckedPropertyGrid.GetDescription Exception: " + ex.ToString());
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine("CheckedPropertyGrid.GetDescription Exception: " + ex);
                     return PropInfo.Name;
                 }
             }
-
         }
-
-        public CheckedPropertyGrid() {
-            InitializeComponent();
-            panel.HorizontalScroll.Visible = false;
-
-            CheckBoxes = new List<PropertyBox>();
-        }
-
-        public event EventHandler PropertyValueChanged;
-        private void OnPropertyValueChanged() {
-            var evt = PropertyValueChanged;
-            if (evt != null)
-                evt(this, EventArgs.Empty);
-        }
-
-        private object _SelectedObject;
-        [Browsable(false)]
-        public object SelectedObject {
-            get { return _SelectedObject; }
-            set {
-                _SelectedObject = value;
-                if (InvokeRequired)
-                    BeginInvoke((Action)UpdateObject);
-                else
-                    UpdateObject();
-            }
-        }
-
-        private void UpdateObject() {
-            var obj = SelectedObject;
-            if (obj == null) return;
-            if (SelectableType != obj.GetType()) return;
-
-            foreach (var check in CheckBoxes) {
-                check.GetValue(obj);
-            }
-        }
-
-        private Type _SelectableType;
-        [Browsable(false)]
-        public Type SelectableType {
-            get { return _SelectableType; }
-            set {
-                _SelectableType = value;
-                if (InvokeRequired)
-                    BeginInvoke((Action)UpdateType);
-                else
-                    UpdateType();
-            }
-        }
-
-        private void UpdateType() {
-            SuspendLayout();
-            try {
-                var type = SelectableType;
-                if (type == null) {
-                    table.Controls.Clear();
-                    CheckBoxes.Clear();
-                    toolTip.RemoveAll();
-                    table.RowCount = 1;
-                } else {
-                    CheckBoxes.Clear();
-                    foreach (var prop in type.GetProperties()) {
-                        if (!prop.CanWrite || !prop.GetSetMethod().IsPublic) continue;
-
-                        var check = new PropertyBox(prop);
-                        CheckBoxes.Add(check);
-                        check.CheckBox.CheckedChanged += new EventHandler(check_CheckedChanged);
-                    }
-
-                    table.Controls.Clear();
-                    toolTip.RemoveAll();
-                    table.RowCount = CheckBoxes.Count;
-                    int row = 0;
-                    foreach (var check in CheckBoxes.OrderBy(v => v.SortPriority)) {
-                        table.RowStyles[row].SizeType = SizeType.AutoSize;
-                        table.Controls.Add(check.CheckBox, 0, row++);
-                        toolTip.SetToolTip(check.CheckBox, check.Description);
-                    }
-                }
-            } finally {
-                ResumeLayout(true);
-            }
-        }
-
-        void check_CheckedChanged(object sender, EventArgs e) {
-            var check = sender as CheckBox;
-            Debug.Assert(check != null);
-            if (check == null) return;
-
-            var weakref = check.Tag as WeakReference;
-            Debug.Assert(weakref != null);
-            if (weakref == null) return;
-
-            var propInfo = weakref.Target as PropertyBox;
-            if (propInfo == null) return;
-
-            propInfo.SetValue(SelectedObject);
-
-            OnPropertyValueChanged();
-        }
-
     }
 
-    [AttributeUsage(AttributeTargets.All, Inherited = false, AllowMultiple = false)]
-    sealed class SortOrderAttribute : Attribute {
-        public SortOrderAttribute() {
+    [AttributeUsage(AttributeTargets.All, Inherited = false)]
+    internal sealed class SortOrderAttribute : Attribute
+    {
+        public SortOrderAttribute()
+        {
             Priority = 0;
         }
 
-        public SortOrderAttribute(int priority) {
+        public SortOrderAttribute(int priority)
+        {
             Priority = priority;
         }
 

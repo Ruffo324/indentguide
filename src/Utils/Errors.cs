@@ -19,34 +19,39 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 
-namespace IndentGuide.Utils {
-    static class Errors {
-        private static bool LogMessageBoxShown = false;
+namespace IndentGuide.Utils
+{
+    internal static class Errors
+    {
+        private static bool LogMessageBoxShown;
 
-        public static void Log(Exception ex) {
+        public static void Log(Exception ex)
+        {
             Log(string.Format(
                 "Exception raised at {0}:{1}{2}{1}{1}",
                 DateTime.UtcNow,
                 Environment.NewLine,
-                ex.ToString()
+                ex
             ));
         }
 
-        public static void Log(string detail) {
+        public static void Log(string detail)
+        {
 #if DEBUG
-            if (Debugger.IsAttached) {
+            if (Debugger.IsAttached)
                 Debugger.Break();
-            } else {
+            else
                 Debugger.Launch();
-            }
 #endif
-            try {
-                var path = Path.Combine(Path.GetTempPath(), "IndentGuide.log");
+            try
+            {
+                string path = Path.Combine(Path.GetTempPath(), "IndentGuide.log");
                 File.AppendAllText(path, detail);
 
-                if (!LogMessageBoxShown) {
+                if (!LogMessageBoxShown)
+                {
                     LogMessageBoxShown = true;
-                    var message = string.Format(
+                    string message = string.Format(
                         "An internal error occurred in Indent Guides.{0}{0}" +
                         "Details have been written to the file:{0}    {1}{0}{0}" +
                         "Please report this error at http://indentguide.codeplex.com/.",
@@ -55,9 +60,10 @@ namespace IndentGuide.Utils {
                     );
                     MessageBox.Show(message, "Indent Guides for Visual Studio");
                 }
-            } catch {
+            }
+            catch
+            {
             }
         }
-
     }
 }

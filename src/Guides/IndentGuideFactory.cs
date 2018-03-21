@@ -20,38 +20,42 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
 
-namespace IndentGuide {
+namespace IndentGuide.Guides
+{
     #region Adornment Factory
+
     /// <summary>
-    /// Establishes an <see cref="IAdornmentLayer"/> to place the adornment on and exports the <see cref="IWpfTextViewCreationListener"/>
-    /// that instantiates the adornment on the event of a <see cref="IWpfTextView"/>'s creation
+    ///     Establishes an <see cref="IAdornmentLayer" /> to place the adornment on and exports the
+    ///     <see cref="IWpfTextViewCreationListener" />
+    ///     that instantiates the adornment on the event of a <see cref="IWpfTextView" />'s creation
     /// </summary>
     [Export(typeof(IWpfTextViewCreationListener))]
     [ContentType("text")]
     [TextViewRole(PredefinedTextViewRoles.Document)]
-    internal sealed class IndentGuideFactory : IWpfTextViewCreationListener {
+    internal sealed class IndentGuideFactory : IWpfTextViewCreationListener
+    {
         /// <summary>
-        /// Defines the adornment layer for the adornment. This layer is ordered 
-        /// after the selection layer in the Z-order
+        ///     Defines the adornment layer for the adornment. This layer is ordered
+        ///     after the selection layer in the Z-order
         /// </summary>
         [Export(typeof(AdornmentLayerDefinition))]
         [Name("IndentGuide")]
         [Order(After = PredefinedAdornmentLayers.Selection, Before = PredefinedAdornmentLayers.Text)]
         [TextViewRole(PredefinedTextViewRoles.Document)]
-        public AdornmentLayerDefinition editorAdornmentLayer = null;
+        public AdornmentLayerDefinition editorAdornmentLayer;
 
         /// <summary>
-        /// Instantiates a IndentGuide manager when a textView is created.
+        ///     Instantiates a IndentGuide manager when a textView is created.
         /// </summary>
-        /// <param name="textView">The <see cref="IWpfTextView"/> upon which the adornment should be placed</param>
-        public void TextViewCreated(IWpfTextView textView) {
-            var service = ServiceProvider.GlobalProvider.GetService(typeof(SIndentGuide)) as IIndentGuide;
+        /// <param name="textView">The <see cref="IWpfTextView" /> upon which the adornment should be placed</param>
+        public void TextViewCreated(IWpfTextView textView)
+        {
+            IIndentGuide service = ServiceProvider.GlobalProvider.GetService(typeof(SIndentGuide)) as IIndentGuide;
             Debug.Assert(textView != null, "No IWpfTextView instance provided");
             Debug.Assert(service != null, "IndentGuide service is not running");
-            if (textView != null && service != null) {
-                new IndentGuideView(textView, service);
-            }
+            if (textView != null && service != null) new IndentGuideView(textView, service);
         }
     }
+
     #endregion //Adornment Factory
 }

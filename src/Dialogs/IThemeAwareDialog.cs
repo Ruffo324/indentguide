@@ -16,18 +16,22 @@
 
 using System;
 using System.Windows.Forms;
+using IndentGuide.Guides;
 
-namespace IndentGuide {
-    public class ThemeEventArgs : EventArgs {
+namespace IndentGuide.Dialogs
+{
+    public class ThemeEventArgs : EventArgs
+    {
         public ThemeEventArgs(IndentTheme theme)
-            : base() {
+        {
             Theme = theme;
         }
 
         public IndentTheme Theme { get; set; }
     }
 
-    public interface IThemeAwareDialog {
+    public interface IThemeAwareDialog
+    {
         IndentTheme ActiveTheme { set; }
         IIndentGuide Service { set; }
 

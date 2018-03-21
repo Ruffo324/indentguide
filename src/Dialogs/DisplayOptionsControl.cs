@@ -16,90 +16,56 @@
 
 using System;
 using System.Diagnostics;
-using System.Drawing;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using IndentGuide.Guides;
+using IndentGuide.Resources;
+using IndentGuide.Utils;
 
-namespace IndentGuide {
-    public partial class DisplayOptionsControl : UserControl, IThemeAwareDialog {
-        class OverrideInfo {
-            public string Text;
-            public int Index;
-            public string Pattern;
-        }
-
-        public DisplayOptionsControl() {
+namespace IndentGuide.Dialogs
+{
+    public partial class DisplayOptionsControl : UserControl, IThemeAwareDialog
+    {
+        public DisplayOptionsControl()
+        {
             InitializeComponent();
 
             lstOverrides.BeginUpdate();
             lstOverrides.Items.Clear();
-            lstOverrides.Items.Add(new OverrideInfo {
+            lstOverrides.Items.Add(new OverrideInfo
+            {
                 Index = LineFormat.DefaultFormatIndex,
                 Text = ResourceLoader.LoadString("DefaultFormatName")
             });
-            lstOverrides.Items.Add(new OverrideInfo {
+            lstOverrides.Items.Add(new OverrideInfo
+            {
                 Index = LineFormat.UnalignedFormatIndex,
                 Text = ResourceLoader.LoadString("UnalignedFormatName")
             });
-            for (int key = 0; key <= 30; ++key) {
-                var name = string.Format(CultureInfo.CurrentCulture, "#{0}", key);
-                lstOverrides.Items.Add(new OverrideInfo {
+            for (int key = 0; key <= 30; ++key)
+            {
+                string name = string.Format(CultureInfo.CurrentCulture, "#{0}", key);
+                lstOverrides.Items.Add(new OverrideInfo
+                {
                     Index = key,
                     Text = name
                 });
             }
+
             lstOverrides.EndUpdate();
         }
 
-        #region IThemeAwareDialog Members
-
-        public IndentTheme ActiveTheme { get; set; }
-        public IIndentGuide Service { get; set; }
-
-        public void Activate() {
-            var fac = new EditorFontAndColors();
-
-            linePreview.BackColor = fac.BackColor;
-            linePreviewHighlight.BackColor = fac.BackColor;
-        }
-
-        public void Apply() { }
-
-        public void Close() { }
-
-        public void Update(IndentTheme active, IndentTheme previous) {
-            if (active != null) {
-                int previousIndex = lstOverrides.SelectedIndex;
-                lstOverrides.SelectedItem = null;    // ensure a change event occurs
-                if (0 <= previousIndex && previousIndex < lstOverrides.Items.Count) {
-                    lstOverrides.SelectedIndex = previousIndex;
-                } else if (lstOverrides.Items.Count > 0) {
-                    lstOverrides.SelectedIndex = 0;
-                } else {
-                    lstOverrides.SelectedIndex = -1;
-                }
-            }
-        }
-
-        private void OnThemeChanged(IndentTheme theme) {
-            if (theme != null) {
-                var evt = ThemeChanged;
-                if (evt != null) evt(this, new ThemeEventArgs(theme));
-            }
-        }
-
-        public event EventHandler<ThemeEventArgs> ThemeChanged;
-
-        #endregion
-
-        private void gridLineStyle_PropertyValueChanged(object s, PropertyValueChangedEventArgs e) {
-            var format = gridLineStyle.SelectedObject as LineFormat;
-            if (format != null) {
+        private void gridLineStyle_PropertyValueChanged(object s, PropertyValueChangedEventArgs e)
+        {
+            if (gridLineStyle.SelectedObject is LineFormat format)
+            {
                 linePreview.ForeColor = format.LineColor;
                 linePreview.GlowColor = format.LineColor;
                 linePreview.Style = format.LineStyle;
-                linePreviewHighlight.ForeColor = format.HighlightStyle.HasFlag(LineStyle.Glow) ? format.LineColor : format.HighlightColor;
+                linePreviewHighlight.ForeColor = format.HighlightStyle.HasFlag(LineStyle.Glow)
+                    ? format.LineColor
+                    : format.HighlightColor;
                 linePreviewHighlight.GlowColor = format.HighlightColor;
                 linePreviewHighlight.Style = format.HighlightStyle;
             }
@@ -107,41 +73,94 @@ namespace IndentGuide {
             OnThemeChanged(ActiveTheme);
         }
 
-        private void lstOverrides_SelectedIndexChanged(object sender, EventArgs e) {
-            if (lstOverrides.SelectedItem == null) return;
-            var oi = lstOverrides.SelectedItem as OverrideInfo;
+        private void lstOverrides_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (lstOverrides.SelectedItem == null)
+                return;
+            OverrideInfo oi = (OverrideInfo)lstOverrides.SelectedItem;
             Debug.Assert(oi != null);
-            if (oi == null) return;
 
-            LineFormat format;
-            if (oi.Pattern == null) {
-                if (!ActiveTheme.LineFormats.TryGetValue(oi.Index, out format)) {
-                    ActiveTheme.LineFormats[oi.Index] = format = ActiveTheme.DefaultLineFormat.Clone(ActiveTheme);
-                    format.FormatIndex = oi.Index;
-                }
-            } else {
-                // TODO: Pattern based formatting
-                format = ActiveTheme.DefaultLineFormat.Clone(ActiveTheme);
+            if (!ActiveTheme.LineFormats.TryGetValue(oi.Index, out LineFormat format))
+            {
+                ActiveTheme.LineFormats[oi.Index] = format = ActiveTheme.DefaultLineFormat.Clone(ActiveTheme);
+                format.FormatIndex = oi.Index;
             }
 
             gridLineStyle.SelectedObject = format;
             linePreview.ForeColor = format.LineColor;
             linePreview.GlowColor = format.LineColor;
             linePreview.Style = format.LineStyle;
-            linePreviewHighlight.ForeColor = format.HighlightStyle.HasFlag(LineStyle.Glow) ? format.LineColor : format.HighlightColor;
+            linePreviewHighlight.ForeColor = format.HighlightStyle.HasFlag(LineStyle.Glow)
+                ? format.LineColor
+                : format.HighlightColor;
             linePreviewHighlight.GlowColor = format.HighlightColor;
             linePreviewHighlight.Style = format.HighlightStyle;
         }
 
-        private void lstOverrides_Format(object sender, ListControlConvertEventArgs e) {
-            var oi = e.ListItem as OverrideInfo;
+        private void lstOverrides_Format(object sender, ListControlConvertEventArgs e)
+        {
+            OverrideInfo oi = e.ListItem as OverrideInfo;
             Debug.Assert(oi != null);
-            if (oi == null) return;
 
             e.Value = oi.Text;
         }
+
+        private class OverrideInfo
+        {
+            public int Index;
+            public string Text;
+        }
+
+        #region IThemeAwareDialog Members
+
+        public IndentTheme ActiveTheme { get; set; }
+        public IIndentGuide Service { get; set; }
+
+        public void Activate()
+        {
+            EditorFontAndColors fac = new EditorFontAndColors();
+
+            linePreview.BackColor = fac.BackColor;
+            linePreviewHighlight.BackColor = fac.BackColor;
+        }
+
+        public void Apply()
+        {
+        }
+
+        public void Close()
+        {
+        }
+
+        public void Update(IndentTheme active, IndentTheme previous)
+        {
+            if (active != null)
+            {
+                int previousIndex = lstOverrides.SelectedIndex;
+                lstOverrides.SelectedItem = null; // ensure a change event occurs
+                if (0 <= previousIndex && previousIndex < lstOverrides.Items.Count)
+                    lstOverrides.SelectedIndex = previousIndex;
+                else if (lstOverrides.Items.Count > 0)
+                    lstOverrides.SelectedIndex = 0;
+                else
+                    lstOverrides.SelectedIndex = -1;
+            }
+        }
+
+        private void OnThemeChanged(IndentTheme theme)
+        {
+            if (theme == null) return;
+            EventHandler<ThemeEventArgs> evt = ThemeChanged;
+            evt?.Invoke(this, new ThemeEventArgs(theme));
+        }
+
+        public event EventHandler<ThemeEventArgs> ThemeChanged;
+
+        #endregion
     }
 
     [Guid("05491866-4ED1-44FE-BDFF-FB14246BDABB")]
-    public sealed class DisplayOptions : GenericOptions<DisplayOptionsControl> { }
+    public sealed class DisplayOptions : GenericOptions<DisplayOptionsControl>
+    {
+    }
 }

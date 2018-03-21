@@ -15,18 +15,26 @@
  * ***************************************************************************/
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using System.Collections.Generic;
+using IndentGuide.Dialogs.Controls;
+using IndentGuide.Guides;
+using IndentGuide.Utils;
 
-namespace IndentGuide {
-    public partial class BehaviorOptionsControl : UserControl, IThemeAwareDialog {
-        private IList<LineTextPreview> Presets;
-        private readonly IEnumerable<IndentTheme> PresetThemes = new[] {
-            new IndentTheme {   // preset 1
-                Behavior = new LineBehavior {
+namespace IndentGuide.Dialogs
+{
+    public partial class BehaviorOptionsControl : UserControl, IThemeAwareDialog
+    {
+        private readonly IEnumerable<IndentTheme> PresetThemes = new[]
+        {
+            new IndentTheme
+            {
+                // preset 1
+                Behavior = new LineBehavior
+                {
                     VisibleAligned = true,
                     VisibleUnaligned = false,
                     ExtendInwardsOnly = true,
@@ -35,8 +43,11 @@ namespace IndentGuide {
                     VisibleEmptyAtEnd = true
                 }
             },
-            new IndentTheme {   // preset 2
-                Behavior = new LineBehavior {
+            new IndentTheme
+            {
+                // preset 2
+                Behavior = new LineBehavior
+                {
                     VisibleAligned = false,
                     VisibleUnaligned = true,
                     ExtendInwardsOnly = false,
@@ -45,8 +56,11 @@ namespace IndentGuide {
                     VisibleEmptyAtEnd = true
                 }
             },
-            new IndentTheme {   // preset 3
-                Behavior = new LineBehavior {
+            new IndentTheme
+            {
+                // preset 3
+                Behavior = new LineBehavior
+                {
                     VisibleAligned = true,
                     VisibleUnaligned = false,
                     ExtendInwardsOnly = true,
@@ -55,8 +69,11 @@ namespace IndentGuide {
                     VisibleEmptyAtEnd = true
                 }
             },
-            new IndentTheme {   // preset 4
-                Behavior = new LineBehavior {
+            new IndentTheme
+            {
+                // preset 4
+                Behavior = new LineBehavior
+                {
                     VisibleAligned = true,
                     VisibleUnaligned = true,
                     ExtendInwardsOnly = false,
@@ -65,8 +82,11 @@ namespace IndentGuide {
                     VisibleEmptyAtEnd = true
                 }
             },
-            new IndentTheme {   // preset 5
-                Behavior = new LineBehavior {
+            new IndentTheme
+            {
+                // preset 5
+                Behavior = new LineBehavior
+                {
                     VisibleAligned = true,
                     VisibleUnaligned = true,
                     ExtendInwardsOnly = false,
@@ -75,8 +95,11 @@ namespace IndentGuide {
                     VisibleEmptyAtEnd = true
                 }
             },
-            new IndentTheme {   // preset 6
-                Behavior = new LineBehavior {
+            new IndentTheme
+            {
+                // preset 6
+                Behavior = new LineBehavior
+                {
                     VisibleAligned = true,
                     VisibleUnaligned = false,
                     ExtendInwardsOnly = false,
@@ -87,10 +110,27 @@ namespace IndentGuide {
             }
         };
 
-        public BehaviorOptionsControl() {
+        private readonly IList<LineTextPreview> Presets;
+
+        public BehaviorOptionsControl()
+        {
             InitializeComponent();
 
-            Presets = new List<LineTextPreview> { preset1, preset2, preset3, preset4, preset5, preset6 };
+            Presets = new List<LineTextPreview> {preset1, preset2, preset3, preset4, preset5, preset6};
+        }
+
+        private void Preset_Click(object sender, EventArgs e)
+        {
+            LineTextPreview preset = sender as LineTextPreview;
+            if (preset == null) return;
+
+            preset.Checked = true;
+            ActiveTheme.Behavior = preset.Theme.Behavior.Clone();
+            OnThemeChanged(ActiveTheme);
+
+            foreach (LineTextPreview p in Presets)
+                if (p != preset)
+                    p.Checked = false;
         }
 
         #region IThemeAwareDialog Members
@@ -98,10 +138,12 @@ namespace IndentGuide {
         public IndentTheme ActiveTheme { get; set; }
         public IIndentGuide Service { get; set; }
 
-        public void Activate() {
-            var fac = new EditorFontAndColors();
+        public void Activate()
+        {
+            EditorFontAndColors fac = new EditorFontAndColors();
 
-            foreach (var p in Presets.Zip(PresetThemes, (x, y) => new Tuple<LineTextPreview, IndentTheme>(x, y))) {
+            foreach (Tuple<LineTextPreview, IndentTheme> p in Presets.Zip(PresetThemes, (x, y) => new Tuple<LineTextPreview, IndentTheme>(x, y)))
+            {
                 p.Item1.Font = new Font(fac.FontFamily, 8.0f, fac.FontBold ? FontStyle.Bold : FontStyle.Regular);
                 p.Item1.ForeColor = fac.ForeColor;
                 p.Item1.BackColor = fac.BackColor;
@@ -112,26 +154,31 @@ namespace IndentGuide {
             }
         }
 
-        public void Apply() { }
+        public void Apply()
+        {
+        }
 
-        public void Close() { }
+        public void Close()
+        {
+        }
 
-        public void Update(IndentTheme active, IndentTheme previous) {
-            if (active != null) {
-                foreach (var p in Presets) {
+        public void Update(IndentTheme active, IndentTheme previous)
+        {
+            if (active != null)
+                foreach (LineTextPreview p in Presets)
+                {
                     p.Theme.LineFormats.Clear();
-                    foreach (var kv in active.LineFormats) {
-                        p.Theme.LineFormats[kv.Key] = kv.Value;
-                    }
+                    foreach (KeyValuePair<int, LineFormat> kv in active.LineFormats) p.Theme.LineFormats[kv.Key] = kv.Value;
                     p.Checked = p.Theme.Behavior.Equals(active.Behavior);
                     p.Invalidate();
                 }
-            }
         }
 
-        private void OnThemeChanged(IndentTheme theme) {
-            if (theme != null) {
-                var evt = ThemeChanged;
+        private void OnThemeChanged(IndentTheme theme)
+        {
+            if (theme != null)
+            {
+                EventHandler<ThemeEventArgs> evt = ThemeChanged;
                 if (evt != null) evt(this, new ThemeEventArgs(theme));
             }
         }
@@ -139,25 +186,10 @@ namespace IndentGuide {
         public event EventHandler<ThemeEventArgs> ThemeChanged;
 
         #endregion
-
-        private void Preset_Click(object sender, EventArgs e) {
-            var preset = sender as LineTextPreview;
-            if (preset == null) {
-                return;
-            }
-
-            preset.Checked = true;
-            ActiveTheme.Behavior = preset.Theme.Behavior.Clone();
-            OnThemeChanged(ActiveTheme);
-            
-            foreach (var p in Presets) {
-                if (p != preset) {
-                    p.Checked = false;
-                }
-            }
-        }
     }
 
     [Guid("D6E472BA-194A-46BD-B817-9107BC0DF1A1")]
-    public sealed class BehaviorOptions : GenericOptions<BehaviorOptionsControl> { }
+    public sealed class BehaviorOptions : GenericOptions<BehaviorOptionsControl>
+    {
+    }
 }

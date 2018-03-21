@@ -19,96 +19,110 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using Microsoft.VisualStudio.Text;
 
-namespace IndentGuide {
+namespace IndentGuide.Guides
+{
     /// <summary>
-    /// Derived classes provide highlighting logic for guides based on the
-    /// caret positien.
+    ///     Derived classes provide highlighting logic for guides based on the
+    ///     caret positien.
     /// </summary>
-    public abstract class CaretHandlerBase {
-        /// <summary>
-        /// Updates the internal state based on the line. All lines should be
-        /// passed.
-        /// </summary>
-        /// <param name="lineSpan">
-        /// The line to use and potentially update.
-        /// </param>
-        /// <param name="willUpdateImmediately">
-        /// If True, lines modified directly will not be returned again by
-        /// GetModified(). However, some lines may be modified indirectly, so a
-        /// call to GetModified() is still required.</param>
-        public abstract void AddLine(LineSpan lineSpan, bool willUpdateImmediately);
-
-        /// <summary>
-        /// When called after updating for each line, this returns a sequence
-        /// of lines that require updating.
-        /// </summary>
-        public abstract IEnumerable<LineSpan> GetModified();
+    public abstract class CaretHandlerBase
+    {
+        private static readonly Dictionary<string, Type> LoadedCaretHandlers = new Dictionary<string, Type>();
+        protected readonly int LineNumber;
 
         protected readonly List<LineSpan> Modified;
-        protected readonly int LineNumber;
         protected readonly int Position;
 
-        protected CaretHandlerBase(VirtualSnapshotPoint location, int tabSize) {
-            if (location.Position.Snapshot != null) {
-                var line = location.Position.GetContainingLine();
+        protected CaretHandlerBase(VirtualSnapshotPoint location, int tabSize)
+        {
+            if (location.Position.Snapshot != null)
+            {
+                ITextSnapshotLine line = location.Position.GetContainingLine();
                 LineNumber = line.LineNumber;
                 Position = location.Position.Position - line.Start.Position + location.VirtualSpaces;
 
                 int bufferIndent = 0;
                 int visualIndent = 0;
-                foreach (var c in line.GetText().Take(Position)) {
+                foreach (char c in line.GetText().Take(Position))
+                {
                     if (c == '\t')
-                        bufferIndent += tabSize - (bufferIndent % tabSize);
+                        bufferIndent += tabSize - bufferIndent % tabSize;
                     else if (c == ' ')
                         bufferIndent += 1;
                     else
                         break;
                     visualIndent += 1;
                 }
+
                 Position += bufferIndent - visualIndent;
                 Modified = new List<LineSpan>();
             }
         }
 
-        private static Dictionary<string, Type> LoadedCaretHandlers = new Dictionary<string, Type>();
+        /// <summary>
+        ///     Updates the internal state based on the line. All lines should be
+        ///     passed.
+        /// </summary>
+        /// <param name="lineSpan">
+        ///     The line to use and potentially update.
+        /// </param>
+        /// <param name="willUpdateImmediately">
+        ///     If True, lines modified directly will not be returned again by
+        ///     GetModified(). However, some lines may be modified indirectly, so a
+        ///     call to GetModified() is still required.
+        /// </param>
+        public abstract void AddLine(LineSpan lineSpan, bool willUpdateImmediately);
 
-        public static CaretHandlerBase FromName(string name, VirtualSnapshotPoint location, int tabSize) {
+        /// <summary>
+        ///     When called after updating for each line, this returns a sequence
+        ///     of lines that require updating.
+        /// </summary>
+        public abstract IEnumerable<LineSpan> GetModified();
+
+        public static CaretHandlerBase FromName(string name, VirtualSnapshotPoint location, int tabSize)
+        {
             Type type;
-            if (name == null) {
-                return new CaretNearestLeft(location, tabSize);
-            }
-            try {
-                if (!LoadedCaretHandlers.TryGetValue(name, out type)) {
+            if (name == null) return new CaretNearestLeft(location, tabSize);
+            try
+            {
+                if (!LoadedCaretHandlers.TryGetValue(name, out type))
+                {
                     type = Type.GetType(name);
                     LoadedCaretHandlers[name] = type;
                     Trace.WriteLine("Loaded caret handler " + type.AssemblyQualifiedName);
                 }
 
-                return type.InvokeMember(null, System.Reflection.BindingFlags.CreateInstance, null, null,
-                    new object[] { location, tabSize }) as CaretHandlerBase;
-            } catch (Exception ex) {
+                return type.InvokeMember(null, BindingFlags.CreateInstance, null, null,
+                    new object[] {location, tabSize}) as CaretHandlerBase;
+            }
+            catch (Exception ex)
+            {
                 Trace.WriteLine(string.Format("CaretHandler::FromName: {0}", ex));
                 return new CaretNearestLeft(location, tabSize);
             }
         }
 
-        internal static ICaretHandlerMetadata MetadataFromName(string name) {
+        internal static ICaretHandlerMetadata MetadataFromName(string name)
+        {
             Type type;
-            if (name == null) {
-                return null;
-            }
-            try {
-                if (!LoadedCaretHandlers.TryGetValue(name, out type)) {
+            if (name == null) return null;
+            try
+            {
+                if (!LoadedCaretHandlers.TryGetValue(name, out type))
+                {
                     type = Type.GetType(name);
                     LoadedCaretHandlers[name] = type;
                     Trace.WriteLine("Loaded caret handler " + type.AssemblyQualifiedName);
                 }
 
-                return type.InvokeMember(null, System.Reflection.BindingFlags.CreateInstance, null, null,
-                    new object[] { default(VirtualSnapshotPoint), 0 }) as ICaretHandlerMetadata;
-            } catch (Exception ex) {
+                return type.InvokeMember(null, BindingFlags.CreateInstance, null, null,
+                    new object[] {default(VirtualSnapshotPoint), 0}) as ICaretHandlerMetadata;
+            }
+            catch (Exception ex)
+            {
                 Trace.WriteLine(string.Format("CaretHandler::MetadataFromName: {0}", ex));
                 return null;
             }
@@ -116,13 +130,14 @@ namespace IndentGuide {
     }
 
     /// <summary>
-    /// Provides metadata for a caret handler.
+    ///     Provides metadata for a caret handler.
     /// </summary>
     /// <remarks>
-    /// Classes implementing this method must support the normal two parameter
-    /// constructor and gracefully handle being passed a null snapshot.
+    ///     Classes implementing this method must support the normal two parameter
+    ///     constructor and gracefully handle being passed a null snapshot.
     /// </remarks>
-    public interface ICaretHandlerMetadata {
+    public interface ICaretHandlerMetadata
+    {
         int GetSortOrder(CultureInfo culture);
         string GetDisplayName(CultureInfo culture);
         string GetDocumentation(CultureInfo culture);

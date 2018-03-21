@@ -17,213 +17,252 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using IndentGuide.Resources;
 using Microsoft.VisualStudio.Text;
 
-namespace IndentGuide {
+namespace IndentGuide.Guides
+{
     /// <summary>
-    /// Does not highlight any guides.
+    ///     Does not highlight any guides.
     /// </summary>
-    class CaretNone : CaretHandlerBase, ICaretHandlerMetadata {
+    internal class CaretNone : CaretHandlerBase, ICaretHandlerMetadata
+    {
         public CaretNone(VirtualSnapshotPoint location, int tabSize)
-            : base(location, tabSize) {
+            : base(location, tabSize)
+        {
         }
 
-        public override void AddLine(LineSpan lineSpan, bool willUpdateImmediately) {
-            if (lineSpan.Highlight) {
-                lineSpan.Highlight = false;
-                if (!willUpdateImmediately) {
-                    Modified.Add(lineSpan);
-                }
-            }
-        }
-
-        public override IEnumerable<LineSpan> GetModified() {
-            return Modified;
-        }
-
-        public int GetSortOrder(CultureInfo culture) {
+        public int GetSortOrder(CultureInfo culture)
+        {
             return 0;
         }
 
-        public string GetDisplayName(CultureInfo culture) {
+        public string GetDisplayName(CultureInfo culture)
+        {
             return ResourceLoader.LoadString("CaretNoneDisplayName", culture);
         }
 
-        public string GetDocumentation(CultureInfo culture) {
+        public string GetDocumentation(CultureInfo culture)
+        {
             return ResourceLoader.LoadString("CaretNoneDocumentation", culture);
+        }
+
+        public override void AddLine(LineSpan lineSpan, bool willUpdateImmediately)
+        {
+            if (lineSpan.Highlight)
+            {
+                lineSpan.Highlight = false;
+                if (!willUpdateImmediately) Modified.Add(lineSpan);
+            }
+        }
+
+        public override IEnumerable<LineSpan> GetModified()
+        {
+            return Modified;
         }
     }
 
-    class CaretNearestLeftBase : CaretHandlerBase {
-        private LineSpan Nearest;
+    internal class CaretNearestLeftBase : CaretHandlerBase
+    {
         private readonly int MinimumLength;
+        private LineSpan Nearest;
 
         protected CaretNearestLeftBase(VirtualSnapshotPoint location, int tabSize, int minimumLength)
-            : base(location, tabSize) {
+            : base(location, tabSize)
+        {
             Nearest = null;
             MinimumLength = minimumLength - 1;
         }
 
-        public override void AddLine(LineSpan line, bool willUpdateImmediately) {
+        public override void AddLine(LineSpan line, bool willUpdateImmediately)
+        {
             if (line.FirstLine <= LineNumber &&
                 LineNumber <= line.LastLine &&
-                ((line.LastLine - line.FirstLine) >= MinimumLength || line.LinkedLines.Any()) &&
+                (line.LastLine - line.FirstLine >= MinimumLength || line.LinkedLines.Any()) &&
                 line.Indent <= Position &&
-                (Nearest == null || line.Indent > Nearest.Indent)) {
+                (Nearest == null || line.Indent > Nearest.Indent))
                 Nearest = line;
-            }
-            
-            if (line.Highlight) {
+
+            if (line.Highlight)
+            {
                 line.Highlight = false;
-                if (!willUpdateImmediately) {
-                    Modified.Add(line);
-                }
+                if (!willUpdateImmediately) Modified.Add(line);
                 Modified.AddRange(line.LinkedLines);
             }
         }
 
-        public override IEnumerable<LineSpan> GetModified() {
-            if (Nearest != null) {
-                while (Modified.Remove(Nearest)) { }
+        public override IEnumerable<LineSpan> GetModified()
+        {
+            if (Nearest != null)
+            {
+                while (Modified.Remove(Nearest))
+                {
+                }
+
                 Nearest.Highlight = true;
                 Modified.Add(Nearest);
                 Modified.AddRange(Nearest.LinkedLines);
                 Nearest = null;
             }
+
             return Modified;
         }
     }
 
     /// <summary>
-    /// Highlights the nearest guide, not including small guides.
+    ///     Highlights the nearest guide, not including small guides.
     /// </summary>
-    class CaretNearestLeft : CaretNearestLeftBase, ICaretHandlerMetadata {
+    internal class CaretNearestLeft : CaretNearestLeftBase, ICaretHandlerMetadata
+    {
         public CaretNearestLeft(VirtualSnapshotPoint location, int tabSize)
-            : base(location, tabSize, 2) { }
+            : base(location, tabSize, 2)
+        {
+        }
 
-        public int GetSortOrder(CultureInfo culture) {
+        public int GetSortOrder(CultureInfo culture)
+        {
             return 10;
         }
 
-        public string GetDisplayName(CultureInfo culture) {
+        public string GetDisplayName(CultureInfo culture)
+        {
             return ResourceLoader.LoadString("CaretNearestLeftDisplayName", culture);
         }
 
-        public string GetDocumentation(CultureInfo culture) {
+        public string GetDocumentation(CultureInfo culture)
+        {
             return ResourceLoader.LoadString("CaretNearestLeftDocumentation", culture);
         }
     }
 
     /// <summary>
-    /// Highlights the nearest guide, including small guides.
+    ///     Highlights the nearest guide, including small guides.
     /// </summary>
-    class CaretNearestLeft2 : CaretNearestLeftBase, ICaretHandlerMetadata {
+    internal class CaretNearestLeft2 : CaretNearestLeftBase, ICaretHandlerMetadata
+    {
         public CaretNearestLeft2(VirtualSnapshotPoint location, int tabSize)
-            : base(location, tabSize, 1) { }
+            : base(location, tabSize, 1)
+        {
+        }
 
-        public int GetSortOrder(CultureInfo culture) {
+        public int GetSortOrder(CultureInfo culture)
+        {
             return 11;
         }
 
-        public string GetDisplayName(CultureInfo culture) {
+        public string GetDisplayName(CultureInfo culture)
+        {
             return ResourceLoader.LoadString("CaretNearestLeft2DisplayName", culture);
         }
 
-        public string GetDocumentation(CultureInfo culture) {
+        public string GetDocumentation(CultureInfo culture)
+        {
             return ResourceLoader.LoadString("CaretNearestLeft2Documentation", culture);
         }
     }
 
     /// <summary>
-    /// Highlights any guide that is touched by the caret.
+    ///     Highlights any guide that is touched by the caret.
     /// </summary>
-    class CaretAdjacent : CaretHandlerBase, ICaretHandlerMetadata {
+    internal class CaretAdjacent : CaretHandlerBase, ICaretHandlerMetadata
+    {
         private readonly int MinimumLength;
 
-        public int GetSortOrder(CultureInfo culture) {
-            return 50;
+        public CaretAdjacent(VirtualSnapshotPoint location, int tabSize)
+            : this(location, tabSize, 1)
+        {
         }
 
-        public CaretAdjacent(VirtualSnapshotPoint location, int tabSize)
-            : this(location, tabSize, 1) { }
-
         public CaretAdjacent(VirtualSnapshotPoint location, int tabSize, int minimumLength)
-            : base(location, tabSize) {
+            : base(location, tabSize)
+        {
             MinimumLength = minimumLength - 1;
         }
 
-        public override void AddLine(LineSpan line, bool willUpdateImmediately) {
+        public int GetSortOrder(CultureInfo culture)
+        {
+            return 50;
+        }
+
+        public string GetDisplayName(CultureInfo culture)
+        {
+            return ResourceLoader.LoadString("CaretAdjacentDisplayName", culture);
+        }
+
+        public string GetDocumentation(CultureInfo culture)
+        {
+            return ResourceLoader.LoadString("CaretAdjacentDocumentation", culture);
+        }
+
+        public override void AddLine(LineSpan line, bool willUpdateImmediately)
+        {
             bool isTouching = false;
-            
+
             if (line.FirstLine - 1 <= LineNumber &&
                 LineNumber <= line.LastLine + 1 &&
-                (line.LastLine - line.FirstLine) >= MinimumLength &&
-                line.Indent == Position) {
+                line.LastLine - line.FirstLine >= MinimumLength &&
+                line.Indent == Position)
                 isTouching = true;
-            }
 
-            if (line.Highlight != isTouching) {
+            if (line.Highlight != isTouching)
+            {
                 line.Highlight = isTouching;
-                if (!willUpdateImmediately) {
-                    Modified.Add(line);
-                }
+                if (!willUpdateImmediately) Modified.Add(line);
                 Modified.AddRange(line.LinkedLines);
             }
         }
 
-        public override IEnumerable<LineSpan> GetModified() {
+        public override IEnumerable<LineSpan> GetModified()
+        {
             return Modified;
-        }
-
-        public string GetDisplayName(CultureInfo culture) {
-            return ResourceLoader.LoadString("CaretAdjacentDisplayName", culture);
-        }
-
-        public string GetDocumentation(CultureInfo culture) {
-            return ResourceLoader.LoadString("CaretAdjacentDocumentation", culture);
         }
     }
 
     /// <summary>
-    /// Highlights guides that start or end on the lines above or below the
-    /// caret.
+    ///     Highlights guides that start or end on the lines above or below the
+    ///     caret.
     /// </summary>
-    class CaretAboveBelowEnds : CaretHandlerBase, ICaretHandlerMetadata {
-        public int GetSortOrder(CultureInfo culture) {
+    internal class CaretAboveBelowEnds : CaretHandlerBase, ICaretHandlerMetadata
+    {
+        public CaretAboveBelowEnds(VirtualSnapshotPoint location, int tabSize)
+            : base(location, tabSize)
+        {
+        }
+
+        public int GetSortOrder(CultureInfo culture)
+        {
             return 80;
         }
 
-        public CaretAboveBelowEnds(VirtualSnapshotPoint location, int tabSize)
-            : base(location, tabSize) {
+        public string GetDisplayName(CultureInfo culture)
+        {
+            return ResourceLoader.LoadString("CaretAboveBelowEndsDisplayName", culture);
         }
 
-        public override void AddLine(LineSpan line, bool willUpdateImmediately) {
+        public string GetDocumentation(CultureInfo culture)
+        {
+            return ResourceLoader.LoadString("CaretAboveBelowEndsDocumentation", culture);
+        }
+
+        public override void AddLine(LineSpan line, bool willUpdateImmediately)
+        {
             bool isTouching = false;
 
             if (line.FirstLine - 1 == LineNumber ||
-                line.LastLine + 1 == LineNumber) {
+                line.LastLine + 1 == LineNumber)
                 isTouching = true;
-            }
 
-            if (line.Highlight != isTouching) {
+            if (line.Highlight != isTouching)
+            {
                 line.Highlight = isTouching;
-                if (!willUpdateImmediately) {
-                    Modified.Add(line);
-                }
+                if (!willUpdateImmediately) Modified.Add(line);
                 Modified.AddRange(line.LinkedLines);
             }
         }
 
-        public override IEnumerable<LineSpan> GetModified() {
+        public override IEnumerable<LineSpan> GetModified()
+        {
             return Modified;
-        }
-
-        public string GetDisplayName(CultureInfo culture) {
-            return ResourceLoader.LoadString("CaretAboveBelowEndsDisplayName", culture);
-        }
-
-        public string GetDocumentation(CultureInfo culture) {
-            return ResourceLoader.LoadString("CaretAboveBelowEndsDocumentation", culture);
         }
     }
 }

@@ -17,19 +17,15 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 
-namespace IndentGuide {
-    public class EditorFontAndColors {
-        public string FontFamily { get; private set; }
-        public float FontSize { get; private set; }
-        public bool FontBold { get; private set; }
-        public Color ForeColor { get; private set; }
-        public Color BackColor { get; private set; }
-        public bool HighlightFontBold { get; private set; }
-        public Color HighlightForeColor { get; private set; }
-        public Color HighlightBackColor { get; private set; }
-
-        public EditorFontAndColors() {
+namespace IndentGuide.Utils
+{
+    public class EditorFontAndColors
+    {
+        public EditorFontAndColors()
+        {
             FontFamily = "Consolas";
             FontSize = 10.0f;
             FontBold = false;
@@ -39,29 +35,41 @@ namespace IndentGuide {
             HighlightForeColor = Color.White;
             HighlightBackColor = Color.Blue;
 
-            try {
-                var dte = (EnvDTE.DTE)IndentGuidePackage.GetGlobalService(typeof(EnvDTE.DTE));
-                var props = dte.Properties["FontsAndColors", "TextEditor"];
+            try
+            {
+                DTE dte = (DTE) Package.GetGlobalService(typeof(DTE));
+                Properties props = dte.Properties["FontsAndColors", "TextEditor"];
 
-                var fac = (EnvDTE.FontsAndColorsItems)props.Item("FontsAndColorsItems").Object;
+                FontsAndColorsItems fac = (FontsAndColorsItems) props.Item("FontsAndColorsItems").Object;
 
-                var colors = (EnvDTE.ColorableItems)fac.Item("Plain Text");
+                ColorableItems colors = fac.Item("Plain Text");
 
                 FontFamily = props.Item("FontFamily").Value.ToString();
-                FontSize = (float)(short)props.Item("FontSize").Value;
+                FontSize = (short) props.Item("FontSize").Value;
                 FontBold = colors.Bold;
-                ForeColor = ColorTranslator.FromOle((int)colors.Foreground);
-                BackColor = ColorTranslator.FromOle((int)colors.Background);
+                ForeColor = ColorTranslator.FromOle((int) colors.Foreground);
+                BackColor = ColorTranslator.FromOle((int) colors.Background);
 
-                colors = (EnvDTE.ColorableItems)fac.Item("Selected Text");
+                colors = fac.Item("Selected Text");
 
                 HighlightFontBold = colors.Bold;
-                HighlightForeColor = ColorTranslator.FromOle((int)colors.Foreground);
-                HighlightBackColor = ColorTranslator.FromOle((int)colors.Background);
-            } catch (Exception ex) {
+                HighlightForeColor = ColorTranslator.FromOle((int) colors.Foreground);
+                HighlightBackColor = ColorTranslator.FromOle((int) colors.Background);
+            }
+            catch (Exception ex)
+            {
                 Trace.WriteLine("Error loading text editor font and colors");
                 Trace.WriteLine(ex.ToString());
             }
         }
+
+        public string FontFamily { get; }
+        public float FontSize { get; }
+        public bool FontBold { get; }
+        public Color ForeColor { get; }
+        public Color BackColor { get; }
+        public bool HighlightFontBold { get; }
+        public Color HighlightForeColor { get; }
+        public Color HighlightBackColor { get; }
     }
 }

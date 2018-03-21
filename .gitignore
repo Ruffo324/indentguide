@@ -9,3 +9,4 @@ Release/
 ipch/
 Releases/
 TestResults/
+/src/.vs/IndentGuide/v15/Server/sqlite3

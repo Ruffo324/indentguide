@@ -1,4 +1,7 @@
-﻿namespace IndentGuide
+﻿using IndentGuide.Dialogs.Controls;
+using IndentGuide.Guides;
+
+namespace IndentGuide.Dialogs
 {
     partial class DisplayOptionsControl
     {
@@ -31,9 +34,9 @@
             this.components = new System.ComponentModel.Container();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
-            this.linePreviewHighlight = new IndentGuide.LinePreview();
+            this.linePreviewHighlight = new LinePreview();
             this.lstOverrides = new System.Windows.Forms.ListBox();
-            this.linePreview = new IndentGuide.LinePreview();
+            this.linePreview = new LinePreview();
             this.gridLineStyle = new System.Windows.Forms.PropertyGrid();
             this.tableLayoutPanel2.SuspendLayout();
             this.SuspendLayout();
@@ -67,7 +70,7 @@
             this.linePreviewHighlight.Location = new System.Drawing.Point(141, 161);
             this.linePreviewHighlight.Name = "linePreviewHighlight";
             this.linePreviewHighlight.Size = new System.Drawing.Size(34, 73);
-            this.linePreviewHighlight.Style = IndentGuide.LineStyle.Solid;
+            this.linePreviewHighlight.Style = LineStyle.Solid;
             this.linePreviewHighlight.TabIndex = 5;
             // 
             // lstOverrides
@@ -91,7 +94,7 @@
             this.linePreview.Location = new System.Drawing.Point(141, 82);
             this.linePreview.Name = "linePreview";
             this.linePreview.Size = new System.Drawing.Size(34, 73);
-            this.linePreview.Style = IndentGuide.LineStyle.Solid;
+            this.linePreview.Style = LineStyle.Solid;
             this.linePreview.TabIndex = 0;
             // 
             // gridLineStyle

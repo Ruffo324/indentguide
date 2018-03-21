@@ -1,4 +1,6 @@
-﻿namespace IndentGuide {
+﻿using IndentGuide.Dialogs.Controls;
+
+namespace IndentGuide.Dialogs {
     partial class BehaviorOptionsControl {
         /// <summary> 
         /// Required designer variable.
@@ -24,12 +26,12 @@
         /// </summary>
         private void InitializeComponent() {
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.preset1 = new IndentGuide.LineTextPreview();
-            this.preset2 = new IndentGuide.LineTextPreview();
-            this.preset3 = new IndentGuide.LineTextPreview();
-            this.preset4 = new IndentGuide.LineTextPreview();
-            this.preset5 = new IndentGuide.LineTextPreview();
-            this.preset6 = new IndentGuide.LineTextPreview();
+            this.preset1 = new LineTextPreview();
+            this.preset2 = new LineTextPreview();
+            this.preset3 = new LineTextPreview();
+            this.preset4 = new LineTextPreview();
+            this.preset5 = new LineTextPreview();
+            this.preset6 = new LineTextPreview();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 

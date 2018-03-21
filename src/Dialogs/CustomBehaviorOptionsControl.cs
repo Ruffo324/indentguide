@@ -16,17 +16,28 @@
 
 using System;
 using System.Drawing;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using System.Collections.Generic;
+using IndentGuide.Guides;
+using IndentGuide.Utils;
 
-namespace IndentGuide {
-    public partial class CustomBehaviorOptionsControl : UserControl, IThemeAwareDialog {
-        public CustomBehaviorOptionsControl() {
+namespace IndentGuide.Dialogs
+{
+    public partial class CustomBehaviorOptionsControl : UserControl, IThemeAwareDialog
+    {
+        public CustomBehaviorOptionsControl()
+        {
             InitializeComponent();
 
             gridLineMode.SelectableType = typeof(LineBehavior);
+        }
+
+        private void gridLineMode_PropertyValueChanged(object s, EventArgs e)
+        {
+            lineTextPreview.Invalidate();
+
+            OnThemeChanged(ActiveTheme);
+            Update(ActiveTheme, ActiveTheme);
         }
 
         #region IThemeAwareDialog Members
@@ -34,29 +45,39 @@ namespace IndentGuide {
         public IndentTheme ActiveTheme { get; set; }
         public IIndentGuide Service { get; set; }
 
-        public void Activate() {
-            var fac = new EditorFontAndColors();
+        public void Activate()
+        {
+            EditorFontAndColors fac = new EditorFontAndColors();
 
-            lineTextPreview.Font = new Font(fac.FontFamily, fac.FontSize, fac.FontBold ? FontStyle.Bold : FontStyle.Regular);
+            lineTextPreview.Font = new Font(fac.FontFamily, fac.FontSize,
+                fac.FontBold ? FontStyle.Bold : FontStyle.Regular);
             lineTextPreview.ForeColor = fac.ForeColor;
             lineTextPreview.BackColor = fac.BackColor;
         }
 
-        public void Apply() { }
+        public void Apply()
+        {
+        }
 
-        public void Close() { }
+        public void Close()
+        {
+        }
 
-        public void Update(IndentTheme active, IndentTheme previous) {
-            if (active != null) {
+        public void Update(IndentTheme active, IndentTheme previous)
+        {
+            if (active != null)
+            {
                 gridLineMode.SelectedObject = active.Behavior;
                 lineTextPreview.Theme = active;
                 lineTextPreview.Invalidate();
             }
         }
 
-        private void OnThemeChanged(IndentTheme theme) {
-            if (theme != null) {
-                var evt = ThemeChanged;
+        private void OnThemeChanged(IndentTheme theme)
+        {
+            if (theme != null)
+            {
+                EventHandler<ThemeEventArgs> evt = ThemeChanged;
                 if (evt != null) evt(this, new ThemeEventArgs(theme));
             }
         }
@@ -64,15 +85,10 @@ namespace IndentGuide {
         public event EventHandler<ThemeEventArgs> ThemeChanged;
 
         #endregion
-
-        private void gridLineMode_PropertyValueChanged(object s, EventArgs e) {
-            lineTextPreview.Invalidate();
-
-            OnThemeChanged(ActiveTheme);
-            Update(ActiveTheme, ActiveTheme);
-        }
     }
 
     [Guid("16020738-BDB9-4165-A7C1-65B51D1EE134")]
-    public sealed class CustomBehaviorOptions : GenericOptions<CustomBehaviorOptionsControl> { }
+    public sealed class CustomBehaviorOptions : GenericOptions<CustomBehaviorOptionsControl>
+    {
+    }
 }

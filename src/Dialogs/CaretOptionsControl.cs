@@ -16,31 +16,102 @@
 
 using System;
 using System.Diagnostics;
-using System.Drawing;
-using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using IndentGuide.Guides;
+using IndentGuide.Resources;
 using Microsoft.VisualStudio.Shell;
 
-namespace IndentGuide {
-    public partial class CaretOptionsControl : UserControl, IThemeAwareDialog {
-        public CaretOptionsControl() {
+namespace IndentGuide.Dialogs
+{
+    public partial class CaretOptionsControl : UserControl, IThemeAwareDialog
+    {
+        public CaretOptionsControl()
+        {
             InitializeComponent();
 
-            var service = ServiceProvider.GlobalProvider.GetService(typeof(SIndentGuide)) as IIndentGuide2;
-            if (service != null) {
-                try {
+            IIndentGuide2 service = ServiceProvider.GlobalProvider.GetService(typeof(SIndentGuide)) as IIndentGuide2;
+            if (service != null)
+                try
+                {
                     lstNames.Items.AddRange(service.CaretHandlerNames.Where(md => md != null).ToArray());
-                } catch (Exception ex) {
+                }
+                catch (Exception ex)
+                {
                     Trace.TraceError("CaretOptionsControl(): {0}", ex);
                 }
-                
-            }
-            if (lstNames.Items.Count == 0) {
-                lstNames.Enabled = false;
-            }
+
+            if (lstNames.Items.Count == 0) lstNames.Enabled = false;
             webDocumentation.Document.OpenNew(true);
+        }
+
+        private void SelectItem(string name)
+        {
+            try
+            {
+                lstNames.Enabled = false;
+                lstNames.SelectedIndex = -1;
+
+                for (int i = 0; i < lstNames.Items.Count; ++i)
+                {
+                    CaretHandlerInfo item = lstNames.Items[i] as CaretHandlerInfo;
+                    if (item != null && item.TypeName.Equals(name, StringComparison.Ordinal))
+                    {
+                        lstNames.SelectedIndex = i;
+                        return;
+                    }
+                }
+
+                ICaretHandlerMetadata metadata = CaretHandlerBase.MetadataFromName(name);
+                for (int i = 0; i < lstNames.Items.Count; ++i)
+                {
+                    CaretHandlerInfo item = lstNames.Items[i] as CaretHandlerInfo;
+                    if (item != null)
+                    {
+                        ICaretHandlerMetadata metadata2 = CaretHandlerBase.MetadataFromName(item.TypeName);
+                        if (metadata == metadata2)
+                        {
+                            lstNames.SelectedIndex = i;
+                            return;
+                        }
+                    }
+                }
+
+                if (lstNames.Items.Count > 0) lstNames.SelectedIndex = 0;
+            }
+            finally
+            {
+                lstNames.Enabled = true;
+            }
+        }
+
+        private void lstNames_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            CaretHandlerInfo item = lstNames.SelectedItem as CaretHandlerInfo;
+            if (item == null)
+            {
+                webDocumentation.DocumentText = ResourceLoader.LoadString("NoDocumentationHtml");
+            }
+            else
+            {
+                webDocumentation.DocumentText = item.Documentation;
+                IndentTheme theme = ActiveTheme;
+                if (theme != null && lstNames.Enabled)
+                {
+                    theme.CaretHandler = item.TypeName;
+                    OnThemeChanged(theme);
+                }
+            }
+        }
+
+        private void lstNames_Format(object sender, ListControlConvertEventArgs e)
+        {
+            CaretHandlerInfo item = e.ListItem as CaretHandlerInfo;
+            if (item != null)
+                e.Value = item.DisplayName;
+            else
+                e.Value = "(null)";
         }
 
         #region IThemeAwareDialog Members
@@ -48,21 +119,28 @@ namespace IndentGuide {
         public IndentTheme ActiveTheme { get; set; }
         public IIndentGuide Service { get; set; }
 
-        public void Activate() { }
-
-        public void Apply() { }
-
-        public void Close() { }
-
-        public void Update(IndentTheme active, IndentTheme previous) {
-            if (active != null) {
-                SelectItem(active.CaretHandler);
-            }
+        public void Activate()
+        {
         }
 
-        private void OnThemeChanged(IndentTheme theme) {
-            if (theme != null) {
-                var evt = ThemeChanged;
+        public void Apply()
+        {
+        }
+
+        public void Close()
+        {
+        }
+
+        public void Update(IndentTheme active, IndentTheme previous)
+        {
+            if (active != null) SelectItem(active.CaretHandler);
+        }
+
+        private void OnThemeChanged(IndentTheme theme)
+        {
+            if (theme != null)
+            {
+                EventHandler<ThemeEventArgs> evt = ThemeChanged;
                 if (evt != null) evt(this, new ThemeEventArgs(theme));
             }
         }
@@ -70,64 +148,10 @@ namespace IndentGuide {
         public event EventHandler<ThemeEventArgs> ThemeChanged;
 
         #endregion
-
-        private void SelectItem(string name) {
-            try {
-                lstNames.Enabled = false;
-                lstNames.SelectedIndex = -1;
-
-                for (int i = 0; i < lstNames.Items.Count; ++i) {
-                    var item = lstNames.Items[i] as CaretHandlerInfo;
-                    if (item != null && item.TypeName.Equals(name, StringComparison.Ordinal)) {
-                        lstNames.SelectedIndex = i;
-                        return;
-                    }
-                }
-
-                var metadata = CaretHandlerBase.MetadataFromName(name);
-                for (int i = 0; i < lstNames.Items.Count; ++i) {
-                    var item = lstNames.Items[i] as CaretHandlerInfo;
-                    if (item != null) {
-                        var metadata2 = CaretHandlerBase.MetadataFromName(item.TypeName);
-                        if (metadata == metadata2) {
-                            lstNames.SelectedIndex = i;
-                            return;
-                        }
-                    }
-                }
-
-                if (lstNames.Items.Count > 0) {
-                    lstNames.SelectedIndex = 0;
-                }
-            } finally {
-                lstNames.Enabled = true;
-            }
-        }
-
-        private void lstNames_SelectedIndexChanged(object sender, EventArgs e) {
-            var item = lstNames.SelectedItem as CaretHandlerInfo;
-            if (item == null) {
-                webDocumentation.DocumentText = ResourceLoader.LoadString("NoDocumentationHtml");
-            } else {
-                webDocumentation.DocumentText = item.Documentation;
-                var theme = ActiveTheme;
-                if (theme != null && lstNames.Enabled) {
-                    theme.CaretHandler = item.TypeName;
-                    OnThemeChanged(theme);
-                }
-            }
-        }
-
-        private void lstNames_Format(object sender, ListControlConvertEventArgs e) {
-            var item = e.ListItem as CaretHandlerInfo;
-            if (item != null) {
-                e.Value = item.DisplayName;
-            } else {
-                e.Value = "(null)";
-            }
-        }
     }
 
     [Guid("2DF6B764-DD1A-4B8D-86D9-630B8C2E9EEE")]
-    public sealed class CaretOptions : GenericOptions<CaretOptionsControl> { }
+    public sealed class CaretOptions : GenericOptions<CaretOptionsControl>
+    {
+    }
 }

@@ -1,4 +1,4 @@
-﻿namespace IndentGuide
+﻿namespace IndentGuide.Dialogs
 {
     partial class ThemeOptionsControl
     {

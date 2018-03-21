@@ -16,24 +16,35 @@
 
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using IndentGuide.Guides;
 
-namespace IndentGuide {
-    public partial class LinePreview : UserControl {
-        public LinePreview() {
+namespace IndentGuide.Dialogs.Controls
+{
+    public partial class LinePreview : UserControl
+    {
+        private Color _GlowColor = SystemColors.ControlText;
+
+        private LineStyle _Style = LineStyle.Solid;
+
+        private Pen LinePen;
+
+        public LinePreview()
+        {
             SetStyle(ControlStyles.OptimizedDoubleBuffer |
-                ControlStyles.ResizeRedraw | ControlStyles.Opaque, true);
+                     ControlStyles.ResizeRedraw | ControlStyles.Opaque, true);
 
             InitializeComponent();
         }
 
-        private LineStyle _Style = LineStyle.Solid;
-        public LineStyle Style {
-            get {
-                return _Style;
-            }
-            set {
-                if (_Style != value) {
+        public LineStyle Style
+        {
+            get => _Style;
+            set
+            {
+                if (_Style != value)
+                {
                     _Style = value;
                     LinePen = null;
                     Invalidate();
@@ -41,56 +52,68 @@ namespace IndentGuide {
             }
         }
 
-        private Color _GlowColor = SystemColors.ControlText;
-        public Color GlowColor {
-            get {
-                return _GlowColor;
-            }
-            set {
-                if (_GlowColor != value) {
+        public Color GlowColor
+        {
+            get => _GlowColor;
+            set
+            {
+                if (_GlowColor != value)
+                {
                     _GlowColor = value;
                     Invalidate();
                 }
             }
         }
-        private bool ShouldSerializeGlowColor() { return _GlowColor != SystemColors.ControlText; }
-        public void ResetGlowColor() { GlowColor = SystemColors.ControlText; }
 
-        protected override void OnForeColorChanged(EventArgs e) {
+        private bool ShouldSerializeGlowColor()
+        {
+            return _GlowColor != SystemColors.ControlText;
+        }
+
+        public void ResetGlowColor()
+        {
+            GlowColor = SystemColors.ControlText;
+        }
+
+        protected override void OnForeColorChanged(EventArgs e)
+        {
             base.OnForeColorChanged(e);
             LinePen = null;
             Invalidate();
         }
 
-        private Pen LinePen = null;
-        protected override void OnPaint(PaintEventArgs e) {
+        protected override void OnPaint(PaintEventArgs e)
+        {
             e.Graphics.Clear(BackColor);
 
             int x = ClientRectangle.Width / 2 + ClientRectangle.Left;
             int y1 = ClientRectangle.Top;
             int y2 = ClientRectangle.Bottom;
 
-            if (LinePen == null) {
-                LinePen = new Pen(ForeColor, (float)Style.GetStrokeThickness());
+            if (LinePen == null)
+            {
+                LinePen = new Pen(ForeColor, (float) Style.GetStrokeThickness());
 
-                var pattern = Style.GetDashPattern();
-                if (pattern == null) {
-                    LinePen.DashStyle = System.Drawing.Drawing2D.DashStyle.Solid;
-                    LinePen.StartCap = System.Drawing.Drawing2D.LineCap.Flat;
-                    LinePen.EndCap = System.Drawing.Drawing2D.LineCap.Flat;
-                } else {
+                float[] pattern = Style.GetDashPattern();
+                if (pattern == null)
+                {
+                    LinePen.DashStyle = DashStyle.Solid;
+                    LinePen.StartCap = LineCap.Flat;
+                    LinePen.EndCap = LineCap.Flat;
+                }
+                else
+                {
                     LinePen.DashPattern = pattern;
                 }
             }
 
             e.Graphics.DrawLine(LinePen, x, y1, x, y2);
-            if (Style.HasFlag(LineStyle.Glow)) {
-                using (var transparentBrush = new SolidBrush(Color.FromArgb(24, GlowColor))) {
-                    for (int i = 1; i < LineStyle.Thick.GetStrokeThickness(); ++i) {
+            if (Style.HasFlag(LineStyle.Glow))
+                using (SolidBrush transparentBrush = new SolidBrush(Color.FromArgb(24, GlowColor)))
+                {
+                    for (int i = 1; i < LineStyle.Thick.GetStrokeThickness(); ++i)
                         e.Graphics.FillRectangle(transparentBrush, x - i, y1, i + i + 1, y2 - y1);
-                    }
                 }
-            }
         }
     }
 }

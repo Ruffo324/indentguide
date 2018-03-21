@@ -16,74 +16,87 @@
 
 using System;
 using System.ComponentModel;
+using System.Threading;
 using System.Windows.Forms;
+using IndentGuide.Guides;
 using Microsoft.VisualStudio.Shell;
 
-namespace IndentGuide {
-    public class GenericOptions<T> : DialogPage where T : Control, IThemeAwareDialog, new() {
+namespace IndentGuide.Dialogs
+{
+    public class GenericOptions<T> : DialogPage where T : Control, IThemeAwareDialog, new()
+    {
+        private T _Control;
+
+        private ThemeOptionsControl _Wrapper;
         private bool IsActivated;
         private bool ShouldSave;
 
-        public GenericOptions() {
+        public GenericOptions()
+        {
             IsActivated = false;
         }
 
-        private T _Control = null;
-        private T Control {
-            get {
+        private T Control
+        {
+            get
+            {
                 if (_Control == null)
-                    System.Threading.Interlocked.CompareExchange(ref _Control, new T(), null);
+                    Interlocked.CompareExchange(ref _Control, new T(), null);
 
                 return _Control;
             }
         }
 
-        private ThemeOptionsControl _Wrapper = null;
-        private ThemeOptionsControl Wrapper {
-            get {
+        private ThemeOptionsControl Wrapper
+        {
+            get
+            {
                 if (_Wrapper == null)
-                    System.Threading.Interlocked.CompareExchange(ref _Wrapper, new ThemeOptionsControl(Control), null);
+                    Interlocked.CompareExchange(ref _Wrapper, new ThemeOptionsControl(Control), null);
 
                 return _Wrapper;
             }
         }
 
-        protected override IWin32Window Window {
-            get { return Wrapper; }
-        }
+        protected override IWin32Window Window => Wrapper;
 
-        protected override void OnActivate(CancelEventArgs e) {
-            if (IsActivated == false) {
-                var service = Site != null ? Site.GetService(typeof(SIndentGuide)) as IndentGuideService : null;
-                if (service != null) {
-                    service.PreserveSettings();
-                }
+        protected override void OnActivate(CancelEventArgs e)
+        {
+            if (IsActivated == false)
+            {
+                IndentGuideService service = Site != null ? Site.GetService(typeof(SIndentGuide)) as IndentGuideService : null;
+                if (service != null) service.PreserveSettings();
                 IsActivated = true;
                 ShouldSave = false;
             }
+
             base.OnActivate(e);
             Wrapper.Activate();
         }
 
-        protected override void OnApply(DialogPage.PageApplyEventArgs e) {
+        protected override void OnApply(PageApplyEventArgs e)
+        {
             Wrapper.Apply();
             base.OnApply(e);
             ShouldSave = true;
         }
 
-        protected override void OnClosed(EventArgs e) {
-            if (!IsActivated) {
+        protected override void OnClosed(EventArgs e)
+        {
+            if (!IsActivated)
+            {
                 // Do nothing
-            } else {
-                var service = Site != null ? Site.GetService(typeof(SIndentGuide)) as IndentGuideService : null;
-                if (service != null) {
-                    if (ShouldSave) {
-                        service.AcceptSettings();
-                    } else {
-                        service.RollbackSettings();
-                    }
-                }
             }
+            else
+            {
+                IndentGuideService service = Site != null ? Site.GetService(typeof(SIndentGuide)) as IndentGuideService : null;
+                if (service != null)
+                    if (ShouldSave)
+                        service.AcceptSettings();
+                    else
+                        service.RollbackSettings();
+            }
+
             // Settings are saved automatically by the final accept/rollback.
             IsActivated = false;
 
